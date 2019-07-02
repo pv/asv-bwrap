@@ -1,0 +1,12 @@
+*.py[cod]
+*.a
+*.o
+*.so
+*.pyd
+__pycache__
+MANIFEST
+.tox
+.*.swp
+*~
+/.pytest_cache
+/dist
