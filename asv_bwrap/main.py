@@ -22,7 +22,8 @@ import shlex
 import shutil
 import contextlib
 import termios
-from pathlib import Path, PurePath
+import glob
+from os.path import (abspath, dirname, basename, join, isdir, isfile, exists)
 
 try:
     import qtoml as toml
@@ -103,7 +104,7 @@ source "$HOME/asv-bwrap-scripts/run1.sh"
 '''
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(usage=__doc__.strip())
     parser.add_argument("config_file", metavar="config.toml",
                         help="Configuration file to use.")
@@ -117,7 +118,9 @@ def main():
                         help="Clear sandbox before running.")
     parser.add_argument("--shell", action="store_true",
                         help="Start shell inside sandbox.")
-    args = parser.parse_args()
+    parser.add_argument("--lock", action="store", default=None,
+                        help="Lock file to use, instead of default.")
+    args = parser.parse_args(argv)
 
     try:
         with open(args.config_file, "r") as f:
@@ -127,36 +130,44 @@ def main():
               file=sys.stderr)
         sys.exit(1)
 
-    os.chdir(Path(args.config_file).parent.absolute())
+    if args.lock is not None:
+        lock_path = abspath(args.lock)
+    else:
+        lock_path = None
 
-    base_dir = Path(config["dir"])
+    os.chdir(abspath(dirname(args.config_file)))
 
-    if not base_dir.is_dir():
+    base_dir = config["dir"]
+
+    if not isdir(base_dir):
         os.makedirs(base_dir)
 
-    with lockfile.LockFile(base_dir / "lock"):
-        with save_terminal():
+    if lock_path is None:
+        lock_path = abspath(join(base_dir, "lock"))
+
+    with save_terminal():
+        with lockfile.LockFile(lock_path):
             do_run(args.command, config, upload=args.upload,
                    reset=args.reset, shell=args.shell)
             sys.exit(0)
 
 
 def do_run(command, config, upload=False, reset=False, shell=False):
-    base_dir = Path(config["dir"])
-    sandbox_dir = base_dir / "sandbox"
-    results_dir = base_dir / "results"
-    html_dir = base_dir / "html"
-    temp_dir = sandbox_dir / "tmp"
-    script_dir = sandbox_dir / "asv-bwrap-scripts"
-    script_src_dir = Path(__file__).parent / "scripts"
+    base_dir = config["dir"]
+    sandbox_dir = join(base_dir, "sandbox")
+    results_dir = join(base_dir, "results")
+    html_dir = join(base_dir, "html")
+    temp_dir = join(sandbox_dir, "tmp")
+    script_dir = join(sandbox_dir, "asv-bwrap-scripts")
+    script_src_dir = join(dirname(__file__), "scripts")
 
     if config["ssh_key"]:
         os.environ["GIT_SSH_COMMAND"] = "ssh -i " + shlex.quote(config["ssh_key"])
 
     if config["upload"]:
         upload_repo = config["upload"]
-        if Path(upload_repo).exists() or (Path(upload_repo) / "refs").is_dir():
-            upload_repo = Path(upload_repo).absolute()
+        if exists(join(upload_repo, ".git")) or isdir(join(upload_repo, "refs")):
+            upload_repo = abspath(upload_repo)
     else:
         upload_repo = None
 
@@ -166,9 +177,9 @@ def do_run(command, config, upload=False, reset=False, shell=False):
             shutil.rmtree(sandbox_dir)
 
     # Setup results dir
-    if not results_dir.is_dir():
+    if not isdir(results_dir):
         if upload_repo:
-            run_git(["clone", upload_repo, results_dir], Path("."))
+            run_git(["clone", upload_repo, results_dir], ".")
         else:
             os.makedirs(results_dir)
             try:
@@ -192,24 +203,20 @@ def do_run(command, config, upload=False, reset=False, shell=False):
         run_git(["checkout", "master"], results_dir)
 
     # Create directories
-    new_sandbox = not sandbox_dir.is_dir()
-    for path in [sandbox_dir, html_dir, temp_dir, results_dir / "results"]:
-        if not path.is_dir():
+    new_sandbox = not isdir(sandbox_dir)
+    for path in [sandbox_dir, html_dir, temp_dir, script_dir, join(results_dir, "results")]:
+        if not isdir(path):
             os.makedirs(path)
 
     # Copy scripts
-    if not script_dir.is_dir():
-        os.makedirs(script_dir)
-
-    for src in script_src_dir.glob('*.sh'):
-        dst = script_dir / src.name
+    for src in glob.glob(join(script_src_dir, '*.sh')):
+        dst = join(script_dir, basename(src))
         shutil.copyfile(src, dst)
 
     # Copy files
     for fn in config["copy_files"]:
-        fn = Path(fn)
-        dst = sandbox_dir / fn.name
-        if fn.is_dir():
+        dst = join(sandbox_dir, basename(fn))
+        if isdir(fn):
             shutil.copytree(fn, dst)
         else:
             shutil.copyfile(fn, dst)
@@ -237,11 +244,11 @@ def do_run(command, config, upload=False, reset=False, shell=False):
     run_git(["checkout", "--orphan", "gh-pages"], results_dir)
 
     for fn in os.listdir(html_dir):
-        src = html_dir / fn
-        dst = results_dir / fn
-        if src.is_dir():
+        src = join(html_dir, fn)
+        dst = join(results_dir, fn)
+        if isdir(src):
             shutil.copytree(src, dst)
-        elif src.is_file():
+        elif isfile(src):
             shutil.copyfile(src, dst)
 
     run_git(["add", "-A", "."], results_dir)
@@ -256,7 +263,7 @@ def do_run(command, config, upload=False, reset=False, shell=False):
 
 
 def spawn_sandbox_script(base_dir, script, args, expose, preamble):
-    with open(base_dir / "sandbox" / "_run_cmd.sh", "w") as f:
+    with open(join(base_dir, "sandbox", "_run_cmd.sh"), "w") as f:
         f.write(preamble)
         f.write("\n\n")
         f.write(script)
@@ -273,9 +280,9 @@ def spawn_sandbox_script(base_dir, script, args, expose, preamble):
     ]
 
     rw_expose = [
-        (base_dir / "sandbox", "/home/sandbox"),
-        (base_dir / "results" / "results", "/home/results"),
-        (base_dir / "html", "/home/html"),
+        (join(base_dir, "sandbox"), "/home/sandbox"),
+        (join(base_dir, "results", "results"), "/home/results"),
+        (join(base_dir, "html"), "/home/html"),
     ]
 
     for src, dst in rw_expose:
@@ -300,7 +307,7 @@ def spawn_sandbox_script(base_dir, script, args, expose, preamble):
 
 def run_git(args, repo_dir, check=True, silent=False):
     env = dict(os.environ)
-    env["GIT_CEILING_DIRECTORIES"] = repo_dir.absolute()
+    env["GIT_CEILING_DIRECTORIES"] = abspath(repo_dir)
     if silent:
         kwargs = dict(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     else:
