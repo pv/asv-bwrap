@@ -48,5 +48,10 @@ The sandbox container is likely difficult to escape from, and can
 protect against mistakes in benchmark scripts, without affecting
 performance as much as a virtual machine.
 
+**However**, the net namespace is not unshared, so processes inside the
+sandbox can access also local network resoures. If you want to use
+this to run untrusted code, you need to review firewall rules and
+other aspects of the configuration.
+
 All operations on the results repository are done outside the sandbox,
 including uploading.
