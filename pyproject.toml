@@ -4,12 +4,26 @@ build-backend = "flit.buildapi"
 
 [tool.flit.metadata]
 module = "asv_bwrap"
+dist-name = "asv-bwrap"
 author = "Pauli Virtanen"
 author-email = "pav@iki.fi"
 home-page = "https://github.com/pv/asv-bwrap"
 requires = ["lockfile",
             "qtoml; python_version>='3.6'",
             "toml; python_version<'3.6'"]
+requires-python = ">=3.5"
+classifiers = [
+    "Topic :: Software Development :: Testing",
+    "Intended Audience :: Developers",
+    "Environment :: Console",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3"
+]
+
+[tool.flit.metadata.requires-extra]
+test = [
+    "pytest>=4.0.0",
+]
 
 [tool.flit.scripts]
 asv-bwrap = "asv_bwrap.main:main"
