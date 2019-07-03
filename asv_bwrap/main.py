@@ -118,7 +118,8 @@ copy_html
 
 def main(argv=None):
     if os.getpid() == 0 or os.getgid() == 0:
-        print("error: asv-bwrap should not be run as root")
+        print("error: asv-bwrap should not be run as root",
+              file=sys.stderr)
         sys.exit(1)
 
     parser = argparse.ArgumentParser(usage=__doc__.strip())
@@ -346,15 +347,21 @@ def run(cmd, *args, **kwargs):
     if "cwd" in kwargs:
         cmd_str = "(cd {}; {})".format(shlex.quote(kwargs["cwd"]), cmd_str)
     cmd_str = "\n$ " + cmd_str
-    print(cmd_str)
+    sys.stderr.flush()
+    print(cmd_str, flush=True)
     try:
         return subprocess.run(cmd, *args, **kwargs)
     except KeyboardInterrupt:
-        print("\nerror: interrupted")
+        print("\nerror: interrupted",
+              file=sys.stderr)
         sys.exit(2)
     except subprocess.CalledProcessError as err:
-        print("\nerror: command exit status {}".format(err.returncode))
+        print("\nerror: command exit status {}".format(err.returncode),
+              file=sys.stderr)
         sys.exit(1)
+    finally:
+        sys.stdout.flush()
+        sys.stderr.flush()
 
 
 @contextlib.contextmanager
