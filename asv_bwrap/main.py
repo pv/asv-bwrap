@@ -10,6 +10,7 @@ repository, which is optionally pushed to a remote repository.
 
 examples:
   %(prog)s --sample-config > config.toml
+  %(prog)s --print-scripts
   %(prog)s --shell config.toml
   %(prog)s --upload config.toml run --steps=11 NEW
 """
@@ -120,6 +121,8 @@ def main(argv=None):
                         help="Arguments passed to the sandbox script")
     parser.add_argument("--sample-config", action=PrintSampleConfig,
                         help="Print a sample configuration file to stdout.")
+    parser.add_argument("--print-scripts", action=PrintScripts,
+                        help="Print bundled shell script files to stdout.")
     parser.add_argument("--upload", action="store_true",
                         help="After running, upload results.")
     parser.add_argument("--reset", action="store_true",
@@ -400,6 +403,28 @@ class PrintSampleConfig(argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         print(SAMPLE_CONFIG.lstrip())
+        sys.exit(0)
+
+
+class PrintScripts(argparse.Action):
+    def __init__(self, option_strings, dest, help=None):
+        super().__init__(option_strings, dest, nargs=0, help=help)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        script_src_dir = join(dirname(__file__), "scripts")
+        for src in glob.glob(join(script_src_dir, '*.sh')):
+            with open(src, 'r') as f:
+                text = f.read()
+
+            title = " {} ".format(basename(src))
+            header = "-"*79
+            header = header[:2] + title + header[2+len(title):]
+
+            print(header)
+            print(text.strip())
+            print("-"*79)
+            print()
+
         sys.exit(0)
 
 
