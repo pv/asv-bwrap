@@ -117,6 +117,10 @@ copy_html
 
 
 def main(argv=None):
+    if os.getpid() == 0 or os.getgid() == 0:
+        print("error: asv-bwrap should not be run as root")
+        sys.exit(1)
+
     parser = argparse.ArgumentParser(usage=__doc__.strip())
     parser.add_argument("config_file", metavar="config.toml",
                         help="Configuration file to use.")
