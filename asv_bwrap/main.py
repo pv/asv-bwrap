@@ -270,14 +270,18 @@ def spawn_sandbox_script(base_dir, script, args, expose, preamble):
 
     shell = shutil.which("bash")
 
+    r = run(["bwrap", "--version"], stdout=subprocess.PIPE)
+    bubblewrap_ver_01 = (b'bubblewrap 0.1' in r.stdout)
+
     bwrap_args = [
         "--unshare-all",
         "--share-net",
         "--new-session",
-        "--die-with-parent",
         "--proc", "/proc",
         "--dev", "/dev",
     ]
+    if not bubblewrap_ver_01:
+        bwrap_args += ["--die-with-parent"]
 
     rw_expose = [
         (join(base_dir, "sandbox"), "/home/sandbox"),
