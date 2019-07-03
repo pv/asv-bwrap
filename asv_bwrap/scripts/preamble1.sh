@@ -9,6 +9,7 @@ export NPY_NUM_BUILD_JOBS=2
 export OPENBLAS_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export OMP_NUM_THREADS=1
+export SOURCE_DATE_EPOCH=1506870070
 
 run() { echo; echo "sandbox\$" "$@"; "$@"; }
 
