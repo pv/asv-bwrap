@@ -1,7 +1,8 @@
 if [ -d repo ]; then
     run git -C repo clean -f -d -x
     run git -C repo reset --hard
-    run git -C repo pull --ff-only
+    run git -C repo fetch --tags
+    run git -C repo merge --ff-only origin/master
     run git -C repo submodule update --init
 else
     run git clone --recurse-submodules "$REPO_URL" repo
