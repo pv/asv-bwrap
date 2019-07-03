@@ -24,7 +24,11 @@ import contextlib
 import termios
 from pathlib import Path, PurePath
 
-import qtoml as toml
+try:
+    import qtoml as toml
+except ImportError:
+    import toml
+
 import lockfile
 
 
