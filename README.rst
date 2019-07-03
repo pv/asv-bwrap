@@ -20,7 +20,7 @@ Example
     user$ vi config.toml
     user$ asv-bwrap config.toml run master^!
 
-    # echo 'su -c "asv-bwrap config.toml run master^!" - user' > /etc/cron.daily/run-benchmarks
+    # echo 'su -c "asv-bwrap config.toml run NEW" - user' > /etc/cron.daily/run-benchmarks
     # chmod +x /etc/cron.daily/run-benchmarks
 
 
