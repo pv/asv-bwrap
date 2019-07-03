@@ -9,6 +9,7 @@ Collects results and HTML output to a {workdir}/results Git
 repository, which is optionally pushed to a remote repository.
 
 examples:
+  %(prog)s --sample-config > config.toml
   %(prog)s --shell config.toml
   %(prog)s --upload config.toml run --steps=11 NEW
 """
@@ -19,16 +20,16 @@ import argparse
 import subprocess
 import shlex
 import shutil
+import contextlib
+import termios
 from pathlib import Path, PurePath
 
 import qtoml as toml
 import lockfile
 
 
-__version__ = "0.1"
-
 SAMPLE_CONFIG = r'''
-# Sample configuration file for asv_bwrap_bench_setup
+# Sample configuration file for asv_bwrap
 
 # Work directory (where output etc. goes), relative to this file
 dir = "./workdir"
@@ -77,19 +78,7 @@ set -e -o pipefail
 export REPO_URL="https://github.com/airspeed-velocity/asv.git"
 export REPO_SUBDIR="."
 
-export PATH="/usr/lib/ccache:/usr/local/lib/f90cache:/usr/lib64/ccache:/usr/local/lib64/f90cache:$PATH"
-export CCACHE_UNIFY=1
-export CCACHE_SLOPPINESS=file_macro,time_macros
-export CCACHE_COMPRESS=1
-export CCACHE_MAXSIZE=1G
-export OPT="-O2"
-export FOPT="-O2"
-export NPY_NUM_BUILD_JOBS=2
-export OPENBLAS_NUM_THREADS=1
-export MKL_NUM_THREADS=1
-export OMP_NUM_THREADS=1
-
-run() { echo; echo "sandbox\\$" "$@"; "$@"; }
+source "$HOME/asv-bwrap-scripts/preamble1.sh"
 """
 
 # To run when setting up the sandbox the first time
@@ -97,7 +86,6 @@ setup = """
 run python3 -mvenv env
 source env/bin/activate
 run pip install asv virtualenv Cython
-run git clone --recurse-submodules "$REPO_URL" repo
 """
 
 # Default run script
@@ -106,34 +94,7 @@ run git clone --recurse-submodules "$REPO_URL" repo
 # and asv html output should be copied to /home/html.
 run = """
 source "$HOME/env/bin/activate"
-
-# Strip Python CFLAGS bad for ccache / old code
-PY_CFLAGS=$(python -c 'import sysconfig; print(sysconfig.get_config_var("CFLAGS"))')
-CFLAGS=$(echo "$PY_CFLAGS" | sed -E -e 's/(-flto|-Werror=[a-z=-]*|-g[0-9]*|-fpedantic-errors)( |$)/ /g;')
-export CFLAGS
-export NPY_DISTUTILS_APPEND_FLAGS=0
-
-run git -C repo clean -f -d -x
-run git -C repo reset --hard
-run git -C repo pull --ff-only
-
-run cd "$HOME/repo"
-if [ "$REPO_SUBDIR" != "" ]; then
-    run cd "$REPO_SUBDIR"
-fi
-rm -rf results .asv/results
-mkdir -p .asv
-ln -s /home/results results
-ln -s /home/results .asv/results
-if [ ! -f $HOME/.asv-machine.json ]; then run asv machine --yes; echo; fi
-if [ "$#" = "0" ]; then
-    run asv run --steps 11 NEW
-else
-    run asv "$@"
-fi
-run asv publish
-if [ -d .asv/html ]; then run rsync -a --delete .asv/html/ /home/html/; fi
-if [ -d html ]; then run rsync -a --delete html/ /home/html/; fi
+source "$HOME/asv-bwrap-scripts/run1.sh"
 """
 '''
 
@@ -142,7 +103,7 @@ def main():
     parser = argparse.ArgumentParser(usage=__doc__.strip())
     parser.add_argument("config_file", metavar="config.toml",
                         help="Configuration file to use.")
-    parser.add_argument("command", nargs=argparse.REMAINDER, metavar="COMMAND",
+    parser.add_argument("command", nargs=argparse.REMAINDER, metavar="ASV_RUN_ARGS",
                         help="Arguments passed to the sandbox script")
     parser.add_argument("--sample-config", action=PrintSampleConfig,
                         help="Print a sample configuration file to stdout.")
@@ -170,9 +131,10 @@ def main():
         os.makedirs(base_dir)
 
     with lockfile.LockFile(base_dir / "lock"):
-        do_run(args.command, config, upload=args.upload,
-               reset=args.reset, shell=args.shell)
-        sys.exit(0)
+        with save_terminal():
+            do_run(args.command, config, upload=args.upload,
+                   reset=args.reset, shell=args.shell)
+            sys.exit(0)
 
 
 def do_run(command, config, upload=False, reset=False, shell=False):
@@ -181,6 +143,8 @@ def do_run(command, config, upload=False, reset=False, shell=False):
     results_dir = base_dir / "results"
     html_dir = base_dir / "html"
     temp_dir = sandbox_dir / "tmp"
+    script_dir = sandbox_dir / "asv-bwrap-scripts"
+    script_src_dir = Path(__file__).parent / "scripts"
 
     if config["ssh_key"]:
         os.environ["GIT_SSH_COMMAND"] = "ssh -i " + shlex.quote(config["ssh_key"])
@@ -223,16 +187,19 @@ def do_run(command, config, upload=False, reset=False, shell=False):
     if r.returncode == 0:
         run_git(["checkout", "master"], results_dir)
 
-    # Create sandbox
-    if not sandbox_dir.is_dir():
-        os.makedirs(sandbox_dir)
-        spawn_sandbox_script(base_dir, config["scripts"]["setup"], [], expose=config["expose"],
-                             preamble=config["scripts"]["preamble"])
-
     # Create directories
-    for path in [html_dir, temp_dir, results_dir / "results"]:
+    new_sandbox = not sandbox_dir.is_dir()
+    for path in [sandbox_dir, html_dir, temp_dir, results_dir / "results"]:
         if not path.is_dir():
             os.makedirs(path)
+
+    # Copy scripts
+    if not script_dir.is_dir():
+        os.makedirs(script_dir)
+
+    for src in script_src_dir.glob('*.sh'):
+        dst = script_dir / src.name
+        shutil.copyfile(src, dst)
 
     # Copy files
     for fn in config["copy_files"]:
@@ -242,6 +209,11 @@ def do_run(command, config, upload=False, reset=False, shell=False):
             shutil.copytree(fn, dst)
         else:
             shutil.copyfile(fn, dst)
+
+    # Create sandbox
+    if new_sandbox:
+        spawn_sandbox_script(base_dir, config["scripts"]["setup"], [], expose=config["expose"],
+                             preamble=config["scripts"]["preamble"])
 
     # Run
     if shell:
@@ -288,11 +260,8 @@ def spawn_sandbox_script(base_dir, script, args, expose, preamble):
     shell = shutil.which("bash")
 
     bwrap_args = [
-        "--unshare-user-try",
-        "--unshare-ipc",
-        "--unshare-pid",
-        "--unshare-uts",
-        "--unshare-cgroup-try",
+        "--unshare-all",
+        "--share-net",
         "--new-session",
         "--die-with-parent",
         "--proc", "/proc",
@@ -349,6 +318,24 @@ def run(cmd, *args, **kwargs):
     except subprocess.CalledProcessError as err:
         print("\nerror: command exit status {}".format(err.returncode))
         sys.exit(1)
+
+
+@contextlib.contextmanager
+def save_terminal():
+    """
+    Restore terminal input state e.g. if sandbox shell changes it
+    """
+    if not sys.stdin.isatty():
+        yield
+        return
+
+    fd = sys.stdin.fileno()
+    old = termios.tcgetattr(fd)
+
+    try:
+        yield
+    finally:
+        termios.tcsetattr(fd, termios.TCSANOW, old)
 
 
 def parse_config(config, schema=None, keys=()):

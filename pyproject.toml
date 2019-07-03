@@ -3,11 +3,11 @@ requires = ["flit"]
 build-backend = "flit.buildapi"
 
 [tool.flit.metadata]
-module = "asv_bwrap_bench_setup"
+module = "asv_bwrap"
 author = "Pauli Virtanen"
 author-email = "pav@iki.fi"
-home-page = "https://github.com/pv/asv-bwrap-bench-setup"
+home-page = "https://github.com/pv/asv-bwrap"
 requires = ["lockfile", "qtoml"]
 
 [tool.flit.scripts]
-asv-bwrap-bench-setup = "asv_bwrap_bench_setup:main"
+asv-bwrap = "asv_bwrap.main:main"
