@@ -25,6 +25,8 @@ import termios
 import glob
 from os.path import (abspath, dirname, basename, join, isdir, isfile, exists)
 
+from . import __version__
+
 try:
     import qtoml as toml
 except ImportError:
@@ -122,6 +124,8 @@ def main(argv=None):
                         help="Start shell inside sandbox.")
     parser.add_argument("--lock", action="store", default=None,
                         help="Lock file to use, instead of default.")
+    parser.add_argument('--version', action='version',
+                        version='asv-bwrap {}'.format(__version__))
     args = parser.parse_args(argv)
 
     try:
