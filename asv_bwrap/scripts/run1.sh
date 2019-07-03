@@ -1,6 +1,5 @@
 prepare_asv() {
     if [ -d repo ]; then
-        run git -C repo clean -f -d -x
         run git -C repo reset --hard
         run git -C repo fetch --tags
         run git -C repo merge --ff-only origin/master
