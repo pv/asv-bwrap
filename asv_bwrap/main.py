@@ -175,7 +175,7 @@ def do_run(command, config, upload=False, reset=False, shell=False):
     script_src_dir = join(dirname(__file__), "scripts")
 
     if config["ssh_key"]:
-        os.environ["GIT_SSH_COMMAND"] = "ssh -i " + shlex.quote(config["ssh_key"])
+        os.environ["GIT_SSH_COMMAND"] = "ssh -i " + shlex.quote(abspath(config["ssh_key"]))
 
     if config["upload"]:
         upload_repo = config["upload"]
