@@ -91,6 +91,7 @@ source "$HOME/asv-bwrap-scripts/preamble1.sh"
 setup = """
 run python3 -mvenv env
 source env/bin/activate
+run pip install --upgrade "pip>=19" wheel
 run pip install asv virtualenv Cython
 """
 
