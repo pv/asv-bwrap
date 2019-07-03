@@ -104,6 +104,10 @@ run pip install asv virtualenv Cython
 run = """
 source "$HOME/env/bin/activate"
 source "$HOME/asv-bwrap-scripts/run1.sh"
+prepare_asv
+run asv "$@"
+run asv publish
+copy_html
 """
 '''
 
