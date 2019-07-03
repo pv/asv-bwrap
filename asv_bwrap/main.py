@@ -56,6 +56,9 @@ upload = ""
 # If empty, not used.
 ssh_key = ""
 
+# Hostname in sandbox. If not given, same as host.
+hostname = ""
+
 # List of files to copy to the sandbox directory (on each run)
 copy_files = []
 
@@ -237,16 +240,16 @@ def do_run(command, config, upload=False, reset=False, shell=False):
     # Create sandbox
     if new_sandbox:
         spawn_sandbox_script(base_dir, config["scripts"]["setup"], [], expose=config["expose"],
-                             preamble=config["scripts"]["preamble"])
+                             preamble=config["scripts"]["preamble"], hostname=config["hostname"])
 
     # Run
     if shell:
         spawn_sandbox_script(base_dir, "exec bash", [], expose=config["expose"],
-                             preamble=config["scripts"]["preamble"])
+                             preamble=config["scripts"]["preamble"], hostname=config["hostname"])
         return
     else:
         spawn_sandbox_script(base_dir, config["scripts"]["run"], command, expose=config["expose"],
-                             preamble=config["scripts"]["preamble"])
+                             preamble=config["scripts"]["preamble"], hostname=config["hostname"])
 
     # Commit results and html
     run_git(["add", "-A", "results"], results_dir)
@@ -275,7 +278,7 @@ def do_run(command, config, upload=False, reset=False, shell=False):
         run_git(["push", "-f", "origin", "gh-pages"], results_dir)
 
 
-def spawn_sandbox_script(base_dir, script, args, expose, preamble):
+def spawn_sandbox_script(base_dir, script, args, expose, preamble, hostname):
     with open(join(base_dir, "sandbox", "_run_cmd.sh"), "w") as f:
         f.write(preamble)
         f.write("\n\n")
@@ -293,6 +296,8 @@ def spawn_sandbox_script(base_dir, script, args, expose, preamble):
         "--proc", "/proc",
         "--dev", "/dev",
     ]
+    if hostname:
+        bwrap_args += ["--hostname", hostname]
     if not bubblewrap_ver_01:
         bwrap_args += ["--die-with-parent"]
 
