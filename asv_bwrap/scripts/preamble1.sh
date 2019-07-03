@@ -14,7 +14,11 @@ export SOURCE_DATE_EPOCH=1506870070
 run() { echo; echo "sandbox\$" "$@"; "$@"; }
 
 # Strip Python CFLAGS bad for ccache / old code
-PY_CFLAGS=$(python -c 'import sysconfig; print(sysconfig.get_config_var("CFLAGS"))')
+if [ -x "$HOME/env/bin/python" ]; then
+    PY_CFLAGS=$($HOME/env/bin/python -c 'import sysconfig; print(sysconfig.get_config_var("CFLAGS"))')
+else
+    PY_CFLAGS=$(python -c 'import sysconfig; print(sysconfig.get_config_var("CFLAGS"))')
+fi
 CFLAGS=$(echo "$PY_CFLAGS" | sed -E -e 's/(-flto|-Werror=[a-z=-]*|-g[0-9]*|-fpedantic-errors)( |$)/ /g;')
 export CFLAGS
 export NPY_DISTUTILS_APPEND_FLAGS=0
