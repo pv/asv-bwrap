@@ -305,6 +305,9 @@ def spawn_sandbox_script(base_dir, script, args, expose, preamble, hostname):
         bwrap_args += ["--hostname", hostname]
     if not bubblewrap_ver_01:
         bwrap_args += ["--die-with-parent"]
+    else:
+        print("warning: old bwrap version: Ctrl-C won't work correctly",
+              file=sys.stderr)
 
     rw_expose = [
         (join(base_dir, "sandbox"), "/home/sandbox"),
