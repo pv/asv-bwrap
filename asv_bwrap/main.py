@@ -249,7 +249,7 @@ def do_run(command, config, upload=False, reset=False, shell=False):
 
     # Run
     if shell:
-        spawn_sandbox_script(base_dir, "exec bash", command, expose=config["expose"],
+        spawn_sandbox_script(base_dir, "exec bash \"$@\"", command, expose=config["expose"],
                              preamble=config["scripts"]["preamble"], hostname=config["hostname"])
         return
     else:
