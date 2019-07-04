@@ -167,7 +167,7 @@ def main(argv=None):
         lock_path = abspath(join(base_dir, "lock"))
 
     with save_terminal():
-        with lockfile.LockFile(lock_path):
+        with lockfile.LockFile(lock_path, timeout=0):
             do_run(args.command, config, upload=args.upload,
                    reset=args.reset, shell=args.shell)
             sys.exit(0)
