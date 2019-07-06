@@ -1,8 +1,7 @@
 asv-bwrap
 =========
 
-Manage running asv_ benchmarks in a lightweight Bubblewrap_
-sandbox on Linux.
+Runs asv_ benchmarks in a Bubblewrap_ sandbox on Linux.
 
 Collects results and HTML output to a Git repository, which is
 optionally pushed to a remote location.

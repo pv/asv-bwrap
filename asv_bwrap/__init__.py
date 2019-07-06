@@ -1,6 +1,5 @@
 """
-Manage running Airspeed Velocity (asv) benchmarks in a lightweight
-Bubblewrap sandbox.
+Runs Airspeed Velocity (asv) benchmarks in a Bubblewrap sandbox.
 """
 
 __version = "0.2.dev0"
