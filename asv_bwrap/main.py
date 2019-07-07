@@ -24,7 +24,7 @@ import shutil
 import contextlib
 import termios
 import glob
-from os.path import (abspath, dirname, basename, join, isdir, isfile, exists)
+from os.path import abspath, dirname, basename, join, isdir, isfile, exists
 
 from . import __version__
 
@@ -118,37 +118,54 @@ copy_html
 
 def main(argv=None):
     if os.getpid() == 0 or os.getgid() == 0:
-        print("error: asv-bwrap should not be run as root",
-              file=sys.stderr)
+        print("error: asv-bwrap should not be run as root", file=sys.stderr)
         sys.exit(1)
 
     parser = argparse.ArgumentParser(usage=__doc__.strip())
-    parser.add_argument("config_file", metavar="config.toml",
-                        help="Configuration file to use.")
-    parser.add_argument("command", nargs=argparse.REMAINDER, metavar="ASV_RUN_ARGS",
-                        help="Arguments passed to the sandbox script")
-    parser.add_argument("--sample-config", action=PrintSampleConfig,
-                        help="Print a sample configuration file to stdout.")
-    parser.add_argument("--print-scripts", action=PrintScripts,
-                        help="Print bundled shell script files to stdout.")
-    parser.add_argument("--upload", action="store_true",
-                        help="After running, upload results.")
-    parser.add_argument("--reset", action="store_true",
-                        help="Clear sandbox before running.")
-    parser.add_argument("--shell", action="store_true",
-                        help="Start shell inside sandbox.")
-    parser.add_argument("--lock", action="store", default=None,
-                        help="Lock file to use, instead of default.")
-    parser.add_argument('--version', action='version',
-                        version='asv-bwrap {}'.format(__version__))
+    parser.add_argument(
+        "config_file", metavar="config.toml", help="Configuration file to use."
+    )
+    parser.add_argument(
+        "command",
+        nargs=argparse.REMAINDER,
+        metavar="ASV_RUN_ARGS",
+        help="Arguments passed to the sandbox script",
+    )
+    parser.add_argument(
+        "--sample-config",
+        action=PrintSampleConfig,
+        help="Print a sample configuration file to stdout.",
+    )
+    parser.add_argument(
+        "--print-scripts",
+        action=PrintScripts,
+        help="Print bundled shell script files to stdout.",
+    )
+    parser.add_argument(
+        "--upload", action="store_true", help="After running, upload results."
+    )
+    parser.add_argument(
+        "--reset", action="store_true", help="Clear sandbox before running."
+    )
+    parser.add_argument(
+        "--shell", action="store_true", help="Start shell inside sandbox."
+    )
+    parser.add_argument(
+        "--lock",
+        action="store",
+        default=None,
+        help="Lock file to use, instead of default.",
+    )
+    parser.add_argument(
+        "--version", action="version", version="asv-bwrap {}".format(__version__)
+    )
     args = parser.parse_args(argv)
 
     try:
         with open(args.config_file, "r") as f:
             config = parse_config(toml.load(f))
     except (ValueError, IOError) as err:
-        print("error: in {!r}: {!s}".format(args.config_file, err),
-              file=sys.stderr)
+        print("error: in {!r}: {!s}".format(args.config_file, err), file=sys.stderr)
         sys.exit(1)
 
     if args.lock is not None:
@@ -168,8 +185,13 @@ def main(argv=None):
 
     with save_terminal():
         with lockfile.LockFile(lock_path, timeout=0):
-            do_run(args.command, config, upload=args.upload,
-                   reset=args.reset, shell=args.shell)
+            do_run(
+                args.command,
+                config,
+                upload=args.upload,
+                reset=args.reset,
+                shell=args.shell,
+            )
             sys.exit(0)
 
 
@@ -183,7 +205,9 @@ def do_run(command, config, upload=False, reset=False, shell=False):
     script_src_dir = join(dirname(__file__), "scripts")
 
     if config["ssh_key"]:
-        os.environ["GIT_SSH_COMMAND"] = "ssh -i " + shlex.quote(abspath(config["ssh_key"]))
+        os.environ["GIT_SSH_COMMAND"] = "ssh -i " + shlex.quote(
+            abspath(config["ssh_key"])
+        )
 
     if config["upload"]:
         upload_repo = config["upload"]
@@ -210,12 +234,16 @@ def do_run(command, config, upload=False, reset=False, shell=False):
                 raise
     else:
         if upload_repo:
-            r = run_git(["remote", "set-url", "origin", upload_repo], results_dir, check=False)
+            r = run_git(
+                ["remote", "set-url", "origin", upload_repo], results_dir, check=False
+            )
             if r.returncode != 0:
                 run_git(["remote", "add", "origin", upload_repo], results_dir)
             run_git(["reset", "--hard"], results_dir)
             run_git(["fetch", "origin"], results_dir)
-            r = run_git(["rev-parse", "origin/master"], results_dir, check=False, silent=True)
+            r = run_git(
+                ["rev-parse", "origin/master"], results_dir, check=False, silent=True
+            )
             if r.returncode == 0:
                 run_git(["merge", "--ff-only", "origin/master"], results_dir)
 
@@ -225,12 +253,18 @@ def do_run(command, config, upload=False, reset=False, shell=False):
 
     # Create directories
     new_sandbox = not isdir(sandbox_dir)
-    for path in [sandbox_dir, html_dir, temp_dir, script_dir, join(results_dir, "results")]:
+    for path in [
+        sandbox_dir,
+        html_dir,
+        temp_dir,
+        script_dir,
+        join(results_dir, "results"),
+    ]:
         if not isdir(path):
             os.makedirs(path)
 
     # Copy scripts
-    for src in glob.glob(join(script_src_dir, '*.sh')):
+    for src in glob.glob(join(script_src_dir, "*.sh")):
         dst = join(script_dir, basename(src))
         shutil.copyfile(src, dst)
 
@@ -244,17 +278,35 @@ def do_run(command, config, upload=False, reset=False, shell=False):
 
     # Create sandbox
     if new_sandbox:
-        spawn_sandbox_script(base_dir, config["scripts"]["setup"], [], expose=config["expose"],
-                             preamble=config["scripts"]["preamble"], hostname=config["hostname"])
+        spawn_sandbox_script(
+            base_dir,
+            config["scripts"]["setup"],
+            [],
+            expose=config["expose"],
+            preamble=config["scripts"]["preamble"],
+            hostname=config["hostname"],
+        )
 
     # Run
     if shell:
-        spawn_sandbox_script(base_dir, "exec bash \"$@\"", command, expose=config["expose"],
-                             preamble=config["scripts"]["preamble"], hostname=config["hostname"])
+        spawn_sandbox_script(
+            base_dir,
+            'exec bash "$@"',
+            command,
+            expose=config["expose"],
+            preamble=config["scripts"]["preamble"],
+            hostname=config["hostname"],
+        )
         return
     else:
-        spawn_sandbox_script(base_dir, config["scripts"]["run"], command, expose=config["expose"],
-                             preamble=config["scripts"]["preamble"], hostname=config["hostname"])
+        spawn_sandbox_script(
+            base_dir,
+            config["scripts"]["run"],
+            command,
+            expose=config["expose"],
+            preamble=config["scripts"]["preamble"],
+            hostname=config["hostname"],
+        )
 
     # Commit results and html
     run_git(["add", "-A", "results"], results_dir)
@@ -276,7 +328,7 @@ def do_run(command, config, upload=False, reset=False, shell=False):
     run_git(["commit", "-q", "-m", "Regenerate HTML"], results_dir)
 
     run_git(["checkout", "master"], results_dir)
-    
+
     # Upload
     if upload and upload_repo:
         run_git(["push", "origin", "master"], results_dir)
@@ -292,22 +344,25 @@ def spawn_sandbox_script(base_dir, script, args, expose, preamble, hostname):
     shell = shutil.which("bash")
 
     r = run(["bwrap", "--version"], stdout=subprocess.PIPE)
-    bubblewrap_ver_01 = (b'bubblewrap 0.1' in r.stdout)
+    bubblewrap_ver_01 = b"bubblewrap 0.1" in r.stdout
 
     bwrap_args = [
         "--unshare-all",
         "--share-net",
         "--new-session",
-        "--proc", "/proc",
-        "--dev", "/dev",
+        "--proc",
+        "/proc",
+        "--dev",
+        "/dev",
     ]
     if hostname:
         bwrap_args += ["--hostname", hostname]
     if not bubblewrap_ver_01:
         bwrap_args += ["--die-with-parent"]
     else:
-        print("warning: old bwrap version: Ctrl-C won't work correctly",
-              file=sys.stderr)
+        print(
+            "warning: old bwrap version: Ctrl-C won't work correctly", file=sys.stderr
+        )
 
     rw_expose = [
         (join(base_dir, "sandbox"), "/home/sandbox"),
@@ -324,10 +379,16 @@ def spawn_sandbox_script(base_dir, script, args, expose, preamble, hostname):
             bwrap_args += ["--ro-bind", fn, fn]
 
     bwrap_args += [
-        "--chdir", "/home/sandbox",
-        "--setenv", "HOME", "/home/sandbox",
-        "--setenv", "TMPDIR", "/home/sandbox/tmp",
-        shell, "_run_cmd.sh"
+        "--chdir",
+        "/home/sandbox",
+        "--setenv",
+        "HOME",
+        "/home/sandbox",
+        "--setenv",
+        "TMPDIR",
+        "/home/sandbox/tmp",
+        shell,
+        "_run_cmd.sh",
     ]
 
     bwrap_args += list(args)
@@ -355,12 +416,10 @@ def run(cmd, *args, **kwargs):
     try:
         return subprocess.run(cmd, *args, **kwargs)
     except KeyboardInterrupt:
-        print("\nerror: interrupted",
-              file=sys.stderr)
+        print("\nerror: interrupted", file=sys.stderr)
         sys.exit(2)
     except subprocess.CalledProcessError as err:
-        print("\nerror: command exit status {}".format(err.returncode),
-              file=sys.stderr)
+        print("\nerror: command exit status {}".format(err.returncode), file=sys.stderr)
         sys.exit(1)
     finally:
         sys.stdout.flush()
@@ -401,17 +460,18 @@ def parse_config(config, schema=None, keys=()):
                 parsed[key] = type(value)()
         elif isinstance(config[key], type(value)):
             if isinstance(value, dict):
-                parsed[key] = parse_config(config.pop(key), value,
-                                           keys=keys + (key,))
+                parsed[key] = parse_config(config.pop(key), value, keys=keys + (key,))
             else:
                 parsed[key] = config.pop(key)
         else:
-            raise ValueError("in {!r}: invalid value {!r}".format(
-                list(keys + (key,)), value))
+            raise ValueError(
+                "in {!r}: invalid value {!r}".format(list(keys + (key,)), value)
+            )
 
     if config:
-        raise ValueError("in {!r}: unknown options {!r}".format(
-            list(keys), sorted(config.keys())))
+        raise ValueError(
+            "in {!r}: unknown options {!r}".format(list(keys), sorted(config.keys()))
+        )
 
     return parsed
 
@@ -431,17 +491,17 @@ class PrintScripts(argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         script_src_dir = join(dirname(__file__), "scripts")
-        for src in glob.glob(join(script_src_dir, '*.sh')):
-            with open(src, 'r') as f:
+        for src in glob.glob(join(script_src_dir, "*.sh")):
+            with open(src, "r") as f:
                 text = f.read()
 
             title = " {} ".format(basename(src))
-            header = "-"*79
-            header = header[:2] + title + header[2+len(title):]
+            header = "-" * 79
+            header = header[:2] + title + header[2 + len(title) :]
 
             print(header)
             print(text.strip())
-            print("-"*79)
+            print("-" * 79)
             print()
 
         sys.exit(0)

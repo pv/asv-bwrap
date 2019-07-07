@@ -11,7 +11,7 @@ def run_asv_bwrap(argv, check=True, redirect=None):
     old_stdout = sys.stdout
     redirect_file = None
     if redirect:
-        redirect_file = open(redirect, 'w')
+        redirect_file = open(redirect, "w")
         sys.stdout = redirect_file
 
     try:
@@ -30,14 +30,14 @@ def run_asv_bwrap(argv, check=True, redirect=None):
 @pytest.fixture
 def base_fixture(monkeypatch, tmpdir):
     monkeypatch.chdir(tmpdir)
-    monkeypatch.setenv('GIT_CEILING_DIRECTORIES', str(tmpdir))
+    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmpdir))
 
 
 @pytest.fixture
 def simple_fixture(base_fixture):
     # Setup outpit
-    os.makedirs('output.git')
-    run(['git', '-C', 'output.git', 'init', '--bare'])
+    os.makedirs("output.git")
+    run(["git", "-C", "output.git", "init", "--bare"])
 
     # Generate default config
     run_asv_bwrap(["--sample-config"], redirect="config.toml")
@@ -45,10 +45,10 @@ def simple_fixture(base_fixture):
     # Edit config
     with open("config.toml", "r") as f:
         config = toml.load(f)
-    config['upload'] = 'output.git'
+    config["upload"] = "output.git"
     with open("config.toml", "w") as f:
         toml.dump(config, f)
 
 
 def test_basic(simple_fixture):
-    run_asv_bwrap(["config.toml", 'run', '--quick'])
+    run_asv_bwrap(["config.toml", "run", "--quick"])

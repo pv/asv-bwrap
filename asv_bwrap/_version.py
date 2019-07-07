@@ -16,8 +16,12 @@ def _get_git_version_suffix(base_version):
     # If in git checkout, add version suffix
     if exists(join(base_dir, ".git")) and exists(join(base_dir, "pyproject.toml")):
         try:
-            r = subprocess.run(["git", "rev-parse", "HEAD"], stdout=subprocess.PIPE,
-                               stderr=subprocess.DEVNULL, check=True)
+            r = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                check=True,
+            )
         except subprocess.CalledProcessError:
             return ""
         out = r.stdout.decode("ascii", errors="replace").strip()
@@ -30,7 +34,7 @@ def _get_git_version_suffix(base_version):
 def _get_pkg_version_suffix(base_version):
     # If installed package, get version
     try:
-        d = get_distribution('asv_bwrap')
+        d = get_distribution("asv_bwrap")
     except:
         return ""
 
@@ -38,7 +42,7 @@ def _get_pkg_version_suffix(base_version):
         return ""
 
     if d.version.startswith(base_version):
-        m = re.match("^[+-]([a-f0-9]{8,8})$", d.version[len(base_version):])
+        m = re.match("^[+-]([a-f0-9]{8,8})$", d.version[len(base_version) :])
         if m:
             return "+" + m.group(1)
 
@@ -48,10 +52,10 @@ def _get_pkg_version_suffix(base_version):
 def _get_dir_version_suffix(base_version):
     # sdist
     name = dirname(normpath(base_dir))
-    expected = 'asv-bwrap-' + base_version + '+'
+    expected = "asv-bwrap-" + base_version + "+"
 
     if name.startswith(expected):
-        m = re.match("^[+-]([a-f0-9]{8,8})$", name[len(expected):])
+        m = re.match("^[+-]([a-f0-9]{8,8})$", name[len(expected) :])
         if m:
             return "+" + m.group(1)
 
@@ -59,6 +63,9 @@ def _get_dir_version_suffix(base_version):
 
 
 def get_dev_version_suffix(base_version):
-    return (_get_git_version_suffix(base_version) or
-            _get_pkg_version_suffix(base_version) or
-            _get_dir_version_suffix(base_version) or "")
+    return (
+        _get_git_version_suffix(base_version)
+        or _get_pkg_version_suffix(base_version)
+        or _get_dir_version_suffix(base_version)
+        or ""
+    )

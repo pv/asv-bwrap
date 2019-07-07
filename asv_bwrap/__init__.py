@@ -6,6 +6,7 @@ __version = "0.2.dev0"
 
 if "dev" in __version:
     from ._version import get_dev_version_suffix
+
     __version += get_dev_version_suffix(__version)
     del get_dev_version_suffix
 
