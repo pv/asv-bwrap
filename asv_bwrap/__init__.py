@@ -1,3 +1,4 @@
+# -*- mode:python; eval: (blacken-mode) -*-
 """
 Runs Airspeed Velocity (asv) benchmarks in a Bubblewrap sandbox.
 """

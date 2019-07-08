@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# -*- mode:python; eval: (blacken-mode) -*-
 """
 %(prog)s [OPTIONS] config.toml ASV_RUN_ARGS...
 

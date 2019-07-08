@@ -1,3 +1,5 @@
+# -*- mode:python; eval: (blacken-mode) -*-
+
 import re
 import subprocess
 from os.path import join, exists, dirname, relpath, normpath
