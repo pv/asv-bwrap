@@ -3,8 +3,8 @@ export CCACHE_UNIFY=1
 export CCACHE_SLOPPINESS=file_macro,time_macros
 export CCACHE_COMPRESS=1
 export CCACHE_MAXSIZE=1G
-export OPT="-O2"
-export FOPT="-O2"
+export OPT="-O2 -g0"
+export FOPT="-O2 -g0"
 export NPY_NUM_BUILD_JOBS=2
 export OPENBLAS_NUM_THREADS=1
 export MKL_NUM_THREADS=1
@@ -19,6 +19,6 @@ if [ -x "$HOME/env/bin/python" ]; then
 else
     PY_CFLAGS=$(python -c 'import sysconfig; print(sysconfig.get_config_var("CFLAGS"))')
 fi
-CFLAGS=$(echo "$PY_CFLAGS" | sed -E -e 's/(-flto|-Werror=[a-z=-]*|-g[0-9]*|-fpedantic-errors)( |$)/ /g;')
+CFLAGS=$(echo "$PY_CFLAGS" | sed -E -e 's/(-flto|-Werror=[a-z=-]*|-g[0-9]*|-fpedantic-errors|-ffat-lto-objects|-fuse-linker-plugin)( |$)/ /g;')
 export CFLAGS
 export NPY_DISTUTILS_APPEND_FLAGS=0
