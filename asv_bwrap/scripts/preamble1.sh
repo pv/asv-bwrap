@@ -19,6 +19,6 @@ if [ -x "$HOME/env/bin/python" ]; then
 else
     PY_CFLAGS=$(python -c 'import sysconfig; print(sysconfig.get_config_var("CFLAGS"))')
 fi
-CFLAGS=$(echo "$PY_CFLAGS" | sed -E -e 's/(-flto|-Werror=[a-z=-]*|-g[0-9]*|-fpedantic-errors|-ffat-lto-objects|-fuse-linker-plugin)( |$)/ /g;')
+CFLAGS=$(echo "$PY_CFLAGS" | sed -E -e 's/(-flto|-Werror=[a-z=-]*|-g[0-9]*|-grecord-gcc-switches|-fpedantic-errors|-ffat-lto-objects|-fuse-linker-plugin)( |$)/ /g;')
 export CFLAGS
 export NPY_DISTUTILS_APPEND_FLAGS=0
