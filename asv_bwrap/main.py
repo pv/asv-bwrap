@@ -34,7 +34,7 @@ try:
 except ImportError:
     import toml
 
-import lockfile
+import filelock
 
 
 SAMPLE_CONFIG = r'''
@@ -189,7 +189,7 @@ def main(argv=None):
         lock_path = abspath(join(base_dir, "lock"))
 
     with save_terminal():
-        with lockfile.LockFile(lock_path, timeout=0):
+        with filelock.FileLock(lock_path, timeout=0):
             do_run(
                 args.command,
                 config,
