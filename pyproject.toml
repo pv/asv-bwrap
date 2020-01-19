@@ -8,7 +8,7 @@ dist-name = "asv-bwrap"
 author = "Pauli Virtanen"
 author-email = "pav@iki.fi"
 home-page = "https://github.com/pv/asv-bwrap"
-requires = ["lockfile",
+requires = ["filelock",
             "qtoml; python_version>='3.6'",
             "toml; python_version<'3.6'"]
 requires-python = ">=3.5"
