@@ -93,6 +93,7 @@ preamble = """
 set -e -o pipefail
 
 export REPO_URL="https://github.com/airspeed-velocity/asv.git"
+export REPO_BRANCH="main"
 export REPO_SUBDIR="."
 
 source "$HOME/asv-bwrap-scripts/preamble1.sh"
