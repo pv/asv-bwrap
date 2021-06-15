@@ -1,4 +1,7 @@
 prepare_asv() {
+    if [ "$REPO_BRANCH" = "" ]; then
+        export REPO_BRANCH=master
+    fi
     if [ -d repo ]; then
         run git -C repo fetch --tags
         run git -C repo reset --hard "origin/$REPO_BRANCH"
